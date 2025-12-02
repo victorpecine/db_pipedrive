@@ -18,23 +18,31 @@ conn = mysql.connector.connect(
     password="admin",
     database="db_pipedrive"
 )
+
 cursor = conn.cursor()
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS tb_users (
-    id BIGINT PRIMARY KEY,
-    name VARCHAR(255)
-);
-""")
+    CREATE TABLE IF NOT EXISTS tb_users (
+        id BIGINT PRIMARY KEY,
+        name VARCHAR(255)
+    );
+    """)
 
 sql = """
-INSERT INTO tb_users (id, name)
-VALUES (%s, %s)
-ON DUPLICATE KEY UPDATE
-    name = VALUES(name);
-"""
+    INSERT INTO tb_users (id, name)
+    VALUES (%s, %s)
+    ON DUPLICATE KEY UPDATE
+        name = VALUES(name);
+    """
 
-valores = [(u["id"], u["name"]) for u in data]
+# Pega os valores do JSON
+valores = [
+    (
+        u["id"],
+        u["name"]
+    )
+    for u in data
+]
 
 cursor.executemany(sql, valores)
 conn.commit()

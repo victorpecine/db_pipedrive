@@ -60,9 +60,6 @@ while True:
 
 df = pd.json_normalize(todos_deals)
 
-# print("\nCOLUNAS DISPONÍVEIS NO PIPEDRIVE:")
-# print(df.columns.to_list())
-
 df = df[[
     "id",
     "title",
@@ -99,6 +96,7 @@ df = df.where(pd.notnull(df), None)
 
 conn = mysql.connector.connect(
     host="mysql",
+    # host="localhost",
     # port=3310,
     user="root",
     password="admin",
@@ -132,7 +130,6 @@ CREATE TABLE IF NOT EXISTS tb_deals (
     PRIMARY KEY (id)
 );
 """)
-
 
 # ===============================
 # UPSERT
