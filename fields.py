@@ -12,8 +12,6 @@ params = {"api_token": API_KEY}
 # REQUISIÇÃO
 # ===============================
 
-print("\nBuscando campos de Deals do Pipedrive...")
-
 r = requests.get(url, params=params, timeout=30)
 response = r.json()
 
@@ -22,8 +20,6 @@ if not response.get("success"):
     exit()
 
 data = response.get("data", [])
-
-print(f"Total de campos retornados pela API: {len(data)}")
 
 # ===============================
 # CONEXÃO MYSQL
@@ -84,10 +80,6 @@ for f in data:
         f.get("edit_flag")   # indica se é customizado
     ))
 
-print("\nResumo:")
-print(f"Campos válidos: {len(valores)}")
-print(f"Campos ignorados (sem id e sem key): {sem_id}")
-
 # ===============================
 # UPSERT
 # ===============================
@@ -111,6 +103,9 @@ ON DUPLICATE KEY UPDATE
     is_mandatory= VALUES(is_mandatory),
     is_custom   = VALUES(is_custom);
 """
+
+cursor.executemany(sql, valores)
+conn.commit()
 
 print(f"\n{cursor.rowcount} fields inseridos/atualizados em tb_fields")
 

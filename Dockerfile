@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     cron \
     procps \
     tzdata \
+    nano \
     && rm -rf /var/lib/apt/lists/*
 
 # Define o diretório de trabalho

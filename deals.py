@@ -59,7 +59,6 @@ while True:
 # ===============================
 
 df = pd.json_normalize(todos_deals)
-print(f"\nTotal de deals no DataFrame: {len(df)}")
 
 # print("\nCOLUNAS DISPONÍVEIS NO PIPEDRIVE:")
 # print(df.columns.to_list())
@@ -138,7 +137,6 @@ CREATE TABLE IF NOT EXISTS tb_deals (
 # ===============================
 # UPSERT
 # ===============================
-print("\nEnviando dados para o MySQL...")
 
 sql = """
 INSERT INTO tb_deals (
