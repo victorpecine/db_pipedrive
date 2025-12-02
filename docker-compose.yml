@@ -1,0 +1,26 @@
+services:
+  mysql:
+    image: mysql:8.1
+    container_name: db_pipedrive
+    environment:
+      TZ: America/Sao_Paulo
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: db_pipedrive
+    ports:
+      - "3310:3306"
+    volumes:
+      - db_pipedrive:/var/lib/mysql
+    restart: always
+
+  cron:
+    build: .
+    container_name: pipedrive_cron
+    environment:
+      TZ: America/Sao_Paulo
+    depends_on:
+      - mysql
+    restart: always
+
+volumes:
+  db_pipedrive:
+    name: db_pipedrive
