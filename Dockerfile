@@ -17,8 +17,10 @@ WORKDIR /app
 # Copia arquivos necessários
 COPY . /app
 
+# Instala dependências do Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Cria diretório para logs
 RUN mkdir -p /app/logs
 
 # Cron a cada 1 hora, seg-sex, 9h às 16h
@@ -37,5 +39,5 @@ RUN crontab /etc/cron.d/pipedrive_cron
 # Cria log
 RUN touch /app/logs/cron.log
 
-CMD ["/bin/sh", "-c", "cron && tail -f /app/logs/cron.log"]
-# CMD ["cron", "-f"]
+# CMD ["/bin/sh", "-c", "cron && tail -f /app/logs/cron.log"]
+CMD ["cron", "-f"]

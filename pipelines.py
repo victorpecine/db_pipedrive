@@ -39,7 +39,7 @@ valores = [(p["id"], p["name"]) for p in data]
 cursor.executemany(sql, valores)
 conn.commit()
 
-print(f"{cursor.rowcount} pipelines salvos")
+print(f"\n{cursor.rowcount} pipelines inseridos/atualizados em tb_pipelines")
 
 cursor.close()
 conn.close()

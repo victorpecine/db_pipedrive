@@ -112,12 +112,7 @@ ON DUPLICATE KEY UPDATE
     is_custom   = VALUES(is_custom);
 """
 
-if valores:
-    cursor.executemany(sql, valores)
-    conn.commit()
-    print(f"\n{cursor.rowcount} registros inseridos / atualizados na tb_fields_deals")
-else:
-    print("\nNenhum campo válido para inserir.")
+print(f"\n{cursor.rowcount} fields inseridos/atualizados em tb_fields")
 
 cursor.close()
 conn.close()

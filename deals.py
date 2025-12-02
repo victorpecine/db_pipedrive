@@ -169,22 +169,24 @@ ON DUPLICATE KEY UPDATE
 
 dados = [tuple(x) for x in df.to_numpy()]
 cursor.executemany(sql, dados)
+total_deals = cursor.rowcount
 
 # Cria tabela para conter timestamp da atualização
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS atualizacoes (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        data_atualizacao DATETIME NOT NULL
+        data_atualizacao DATETIME NOT NULL,
+        total_deals INT NOT NULL
     )
     """)
 timestamp = datetime.now(ZoneInfo("America/Sao_Paulo"))
 cursor.execute(
-    "INSERT INTO atualizacoes (data_atualizacao) VALUES (%s)", (timestamp,)
+    "INSERT INTO atualizacoes (data_atualizacao, total_deals) VALUES (%s, %s)", (timestamp, total_deals)
     )
 
 conn.commit()
 
-print(f"\nFinalizado! {len(dados)} registros inseridos/atualizados em tb_deals")
+print(f"\n{total_deals} deals inseridos/atualizados em tb_deals")
 
 cursor.close()
 conn.close()

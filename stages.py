@@ -41,7 +41,7 @@ valores = [(s["id"], s["pipeline_id"], s["name"]) for s in data]
 cursor.executemany(sql, valores)
 conn.commit()
 
-print(f"{cursor.rowcount} stages salvos")
+print(f"\n{cursor.rowcount} stages inseridos/atualizados em tb_stages")
 
 cursor.close()
 conn.close()

@@ -39,7 +39,7 @@ valores = [(u["id"], u["name"]) for u in data]
 cursor.executemany(sql, valores)
 conn.commit()
 
-print(f"{cursor.rowcount} users salvos")
+print(f"\n{cursor.rowcount} users inseridos/atualizados em tb_users")
 
 cursor.close()
 conn.close()
