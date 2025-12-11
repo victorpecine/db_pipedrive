@@ -15,16 +15,23 @@ RUN apt-get update && apt-get install -y \
 # Define o diretório de trabalho
 WORKDIR /app
 
-# Copia arquivos necessários
-COPY . /app
-
-# Instala dependências do Python
+# Copia e instala dependências do Python
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Cria diretório para logs
+# Copia os arquivos da aplicação (scripts Python) e o wrapper
+COPY . /app
+COPY start.sh /usr/local/bin/start.sh
+
+# Permissões para o script de inicialização
+RUN chmod +x /usr/local/bin/start.sh
+
+# Cria diretório para logs e log file
 RUN mkdir -p /app/logs
+RUN touch /app/logs/cron.log
 
 # Cron a cada 1 hora, seg-sex, 9h às 16h
+# NOTA: O script start.sh garante que as variáveis do .env estarão no ambiente
 RUN echo "0 9-16 * * 1-5 cd /app && \
 /usr/local/bin/python deals.py && \
 /usr/local/bin/python fields.py && \
@@ -35,10 +42,6 @@ RUN echo "0 9-16 * * 1-5 cd /app && \
 
 # Permissões
 RUN chmod 0644 /etc/cron.d/pipedrive_cron
-RUN crontab /etc/cron.d/pipedrive_cron
 
-# Cria log
-RUN touch /app/logs/cron.log
-
-# CMD ["/bin/sh", "-c", "cron && tail -f /app/logs/cron.log"]
-CMD ["cron", "-f"]
+# Inicia o script wrapper, que exporta o ambiente e executa o cron -f
+CMD ["/usr/local/bin/start.sh"]
