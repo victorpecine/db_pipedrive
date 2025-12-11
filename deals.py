@@ -72,7 +72,7 @@ while True:
     if pagina > 1000:
         print("Loop interrompido por segurança")
         break
-    
+
 # ===============================
 # DATAFRAME
 # ===============================
@@ -111,6 +111,39 @@ df = df.rename(
 
 # Troca NaN por None (para virar NULL no MySQL)
 df = df.where(pd.notnull(df), None)
+# Define a ordem exata das 17 colunas para garantir o alinhamento 
+# com a query SQL abaixo (UPSERT).
+colunas_sql_order = [
+    "id", "title", "cod_cliente", "value",
+    "currency", "status", "pipeline_id", "stage_id",
+    "id_responsavel", "nome_responsavel",
+    "nome_cliente", "nome_empresa", 
+    "add_time", "update_time",
+    "close_time", "won_time", "lost_time"
+]
+
+df_ordenado = df[colunas_sql_order]
+
+# 🛑 NOVO BLOCO: SERIALIZAÇÃO MANUAL PARA GARANTIR None/NULL
+dados = []
+for index, row in df_ordenado.iterrows():
+    tupla = []
+    for col in colunas_sql_order:
+        valor = row[col]
+        
+        # Se for cod_cliente e o valor for float nan, force None
+        # Esta linha pega o valor nan (float) que o Pandas pode ter mantido
+        if col == 'cod_cliente' and pd.isna(valor):
+            tupla.append(None)
+        
+        # Se for um None válido, ou um valor numérico/string, use-o
+        elif pd.isna(valor):
+            # Para colunas de data/hora ou outras que podem ser None (NULL)
+            tupla.append(None)
+        else:
+            tupla.append(valor)
+            
+    dados.append(tuple(tupla))
 
 # ===============================
 # CONEXÃO MYSQL
@@ -135,7 +168,7 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS tb_deals (
     id                BIGINT NOT NULL,
     title             VARCHAR(255),
-    cod_cliente       VARCHAR(10),
+    cod_cliente       VARCHAR(255),
     value             DECIMAL(15,2),
     currency          VARCHAR(10),
     status            VARCHAR(50),
@@ -203,8 +236,28 @@ colunas_sql_order = [
 ]
 
 df_ordenado = df[colunas_sql_order]
-dados = [tuple(x) for x in df_ordenado.to_numpy()] # Formato exigido (lista de tuplas) para execução em lote via executemany
-cursor.executemany(sql, dados)
+# dados = [tuple(x) for x in df_ordenado.to_numpy()] # Formato exigido (lista de tuplas) para execução em lote via executemany
+# cursor.executemany(sql, dados)
+print("\n--- DEBUG: 5 Primeiras Tuplas (Dados) ---")
+print(dados[:5]) 
+
+# 2. Inspeciona a linha onde o erro ocorreu (Se os dados estiverem ok, ignore)
+# Como o erro é no começo, as primeiras linhas são suficientes.
+
+# 3. Fazemos um teste de exceção para capturar a tupla exata que está quebrando:
+try:
+    cursor.executemany(sql, dados)
+except mysql.connector.errors.ProgrammingError as e:
+    # A exceção deve ser tratada aqui para imprimir o dado que falhou.
+    
+    # OBS: O executemany não informa o índice exato da falha.
+    # Para capturar o índice exato, teríamos que usar o loop de execução 
+    # individual (cursor.execute) e inspecionar onde a falha acontece.
+    
+    print("\nERRO DE EXECUÇÃO SQL: Detalhes acima.")
+    print("Por favor, confira se há a string 'nan' nas primeiras tuplas impressas.")
+    raise e # Relança o erro para interromper a execução
+
 total_deals = cursor.rowcount
 
 # Cria tabela para conter timestamp da atualização
