@@ -15,8 +15,11 @@ services:
   cron:
     build: .
     container_name: pipedrive_cron
+    env_file:
+      - .env
     environment:
       TZ: America/Sao_Paulo
+      MYSQL_HOST: mysql
     depends_on:
       - mysql
     restart: always

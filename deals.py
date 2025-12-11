@@ -1,16 +1,35 @@
+import os
 import requests
 import pandas as pd
 import mysql.connector
 from   datetime import datetime
 from   zoneinfo import ZoneInfo
+from   dotenv import load_dotenv
 
 
-API_KEY = "4436c240ab88d75dae896315502cab8d36defeae"
-BASE_URL = "https://preambulotech2.pipedrive.com/api/v1"
+# Carrega as variáveis de ambiente do arquivo .env no diretório atual
+load_dotenv()
+
+API_KEY  = os.environ.get("PIPEDRIVE_API_KEY")
+BASE_URL = os.environ.get("PIPEDRIVE_BASE_URL")
+
+# Dados de Conexão MySQL
+DB_HOST     = "mysql"
+DB_USER     = os.environ.get("MYSQL_USER")
+DB_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+DB_DATABASE = os.environ.get("MYSQL_DATABASE")
+
+# Fuso Horário
+TIMEZONE_NAME = os.environ.get("TIMEZONE", "America/Sao_Paulo")
+
+# ===============================
+# EXTRAÇÃO DE DADOS DO PIPEDRIVE
+# ===============================
+# Variáveis de Configuração de URL e Parâmetros
 url = f"{BASE_URL}/deals"
 
 params = {
-    "api_token": API_KEY,
+    "api_token": API_KEY, # Usando a chave lida do ambiente
     "limit": 500,
     "start": 0
 }
@@ -53,7 +72,7 @@ while True:
     if pagina > 1000:
         print("Loop interrompido por segurança")
         break
-
+    break
 # ===============================
 # DATAFRAME
 # ===============================
@@ -63,6 +82,7 @@ df = pd.json_normalize(todos_deals)
 df = df[[
     "id",
     "title",
+    "6564ef40269f2f1d4d0783d8b73b79773e13b158",  # Campo personalizado "Código do Cliente"
     "value",
     "currency",
     "status",
@@ -80,11 +100,13 @@ df = df[[
 ]]
 
 # Renomear colunas para MySQL
-df = df.rename(columns={
-    "user_id.id": "user_id",
-    "user_id.name": "user_name",
-    "person_id.name": "person_name",
-    "org_id.name": "org_name"
+df = df.rename(
+    columns={
+        "user_id.id": "id_responsavel",
+        "user_id.name": "nome_responsavel",
+        "person_id.name": "nome_cliente",
+        "org_id.name": "nome_empresa",
+        "6564ef40269f2f1d4d0783d8b73b79773e13b158": "cod_cliente"
 })
 
 # Troca NaN por None (para virar NULL no MySQL)
@@ -95,12 +117,12 @@ df = df.where(pd.notnull(df), None)
 # ===============================
 
 conn = mysql.connector.connect(
-    host="mysql",
-    # host="localhost",
-    # port=3310,
-    user="root",
-    password="admin",
-    database="db_pipedrive"
+    host=DB_HOST,
+    # host="localhost",  # Para teste local
+    # port=3310,  # Para teste local
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database=DB_DATABASE 
 )
 
 cursor = conn.cursor()
@@ -111,22 +133,23 @@ cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tb_deals (
-    id              BIGINT NOT NULL,
-    title           VARCHAR(255),
-    value           DECIMAL(15,2),
-    currency        VARCHAR(10),
-    status          VARCHAR(50),
-    pipeline_id     BIGINT,
-    stage_id        BIGINT,
-    user_id         BIGINT,
-    user_name       VARCHAR(255),
-    person_name     VARCHAR(255),
-    org_name        VARCHAR(255),
-    add_time        DATETIME,
-    update_time     DATETIME,
-    close_time      DATETIME,
-    won_time        DATETIME,
-    lost_time       DATETIME,
+    id                BIGINT NOT NULL,
+    title             VARCHAR(255),
+    cod_cliente       VARCHAR(10),
+    value             DECIMAL(15,2),
+    currency          VARCHAR(10),
+    status            VARCHAR(50),
+    pipeline_id       BIGINT,
+    stage_id          BIGINT,
+    id_responsavel    BIGINT,
+    nome_responsavel  VARCHAR(255),
+    nome_cliente      VARCHAR(255),
+    nome_empresa      VARCHAR(255),
+    add_time          DATETIME,
+    update_time       DATETIME,
+    close_time        DATETIME,
+    won_time          DATETIME,
+    lost_time         DATETIME,
     PRIMARY KEY (id)
 );
 """)
@@ -137,32 +160,50 @@ CREATE TABLE IF NOT EXISTS tb_deals (
 
 sql = """
 INSERT INTO tb_deals (
-    id, title, value, currency, status,
+    id, title,
+    cod_cliente, value,
+    currency, status,
     pipeline_id, stage_id,
-    user_id, user_name,
-    person_name, org_name,
-    add_time, update_time, close_time, won_time, lost_time
+    id_responsavel, nome_responsavel,
+    nome_cliente,
+    nome_empresa, add_time,
+    update_time, close_time,
+    won_time, lost_time
 )
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
 ON DUPLICATE KEY UPDATE
-    title       = VALUES(title),
-    value       = VALUES(value),
-    currency    = VALUES(currency),
-    status      = VALUES(status),
-    pipeline_id = VALUES(pipeline_id),
-    stage_id    = VALUES(stage_id),
-    user_id     = VALUES(user_id),
-    user_name   = VALUES(user_name),
-    person_name = VALUES(person_name),
-    org_name    = VALUES(org_name),
-    update_time = VALUES(update_time),
-    close_time  = VALUES(close_time),
-    won_time    = VALUES(won_time),
-    lost_time   = VALUES(lost_time);
+    title               = VALUES(title),
+    value               = VALUES(value),
+    cod_cliente         = VALUES(cod_cliente),
+    currency            = VALUES(currency),
+    status              = VALUES(status),
+    pipeline_id         = VALUES(pipeline_id),
+    stage_id            = VALUES(stage_id),
+    id_responsavel      = VALUES(id_responsavel),
+    nome_responsavel    = VALUES(nome_responsavel),
+    nome_cliente        = VALUES(nome_cliente),
+    nome_empresa        = VALUES(nome_empresa),
+    add_time            = VALUES(add_time),
+    update_time         = VALUES(update_time),
+    close_time          = VALUES(close_time),
+    won_time            = VALUES(won_time),
+    lost_time           = VALUES(lost_time);
 """
 
-dados = [tuple(x) for x in df.to_numpy()]
+# Define a ordem exata das 17 colunas para garantir o alinhamento 
+# com a query SQL abaixo (UPSERT).
+colunas_sql_order = [
+    "id", "title", "cod_cliente", "value",
+    "currency", "status", "pipeline_id", "stage_id",
+    "id_responsavel", "nome_responsavel",
+    "nome_cliente", "nome_empresa", 
+    "add_time", "update_time",
+    "close_time", "won_time", "lost_time"
+]
+
+df_ordenado = df[colunas_sql_order]
+dados = [tuple(x) for x in df_ordenado.to_numpy()] # Formato exigido (lista de tuplas) para execução em lote via executemany
 cursor.executemany(sql, dados)
 total_deals = cursor.rowcount
 

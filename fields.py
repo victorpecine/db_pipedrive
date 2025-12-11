@@ -1,17 +1,34 @@
+import os
 import requests
 import mysql.connector
+from   dotenv import load_dotenv
 
 
-API_KEY = "4436c240ab88d75dae896315502cab8d36defeae"
-BASE_URL = "https://preambulotech2.pipedrive.com/api/v1"
+# Carrega as variáveis de ambiente do arquivo .env no diretório atual
+load_dotenv()
 
+API_KEY  = os.environ.get("PIPEDRIVE_API_KEY")
+BASE_URL = os.environ.get("PIPEDRIVE_BASE_URL")
+
+# Dados de Conexão MySQL
+DB_HOST     = "mysql"
+DB_USER     = os.environ.get("MYSQL_USER")
+DB_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+DB_DATABASE = os.environ.get("MYSQL_DATABASE")
+
+# Fuso Horário
+TIMEZONE_NAME = os.environ.get("TIMEZONE", "America/Sao_Paulo")
+
+# ===============================
+# EXTRAÇÃO DE DADOS DO PIPEDRIVE
+# ===============================
+# Variáveis de Configuração de URL e Parâmetros
 url = f"{BASE_URL}/dealFields"
 params = {"api_token": API_KEY}
 
 # ===============================
 # REQUISIÇÃO
 # ===============================
-
 r = requests.get(url, params=params, timeout=30)
 response = r.json()
 
@@ -26,11 +43,12 @@ data = response.get("data", [])
 # ===============================
 
 conn = mysql.connector.connect(
-    host="mysql",
-    # port=3310,
-    user="root",
-    password="admin",
-    database="db_pipedrive"
+    host=DB_HOST,
+    # host="localhost",  # Para teste local
+    # port=3310,  # Para teste local
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database=DB_DATABASE 
 )
 
 cursor = conn.cursor()
