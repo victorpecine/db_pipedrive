@@ -72,7 +72,7 @@ while True:
     if pagina > 1000:
         print("Loop interrompido por segurança")
         break
-    break
+    
 # ===============================
 # DATAFRAME
 # ===============================
