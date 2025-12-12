@@ -13,7 +13,6 @@ docker-compose build --no-cache && docker-compose -p pipedrive up -d
 
 # Testar manualmente o deals.py
 docker exec -it pipedrive_cron bash
-cd /app
 python3 deals.py
 
 # Execução para todas as tabelas

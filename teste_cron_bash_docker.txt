@@ -1,0 +1,19 @@
+1. Entrar no container
+docker exec -it pipedrive_cron bash
+
+2. Listar arquivos de cron instalados
+ls -l /etc/cron.d/
+
+3. Exibir o conteúdo do seu arquivo de cron
+cat /etc/cron.d/pipedrive_cron
+
+4. Ver se o cron carregou algum job
+crontab -l
+
+5. Verificar se o processo cron está rodando
+ps aux | grep cron
+
+6. Verificar CRLF
+
+7. Ver logs cron
+cat logs/cron.log

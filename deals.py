@@ -236,27 +236,7 @@ colunas_sql_order = [
 ]
 
 df_ordenado = df[colunas_sql_order]
-# dados = [tuple(x) for x in df_ordenado.to_numpy()] # Formato exigido (lista de tuplas) para execução em lote via executemany
 # cursor.executemany(sql, dados)
-print("\n--- DEBUG: 5 Primeiras Tuplas (Dados) ---")
-print(dados[:5]) 
-
-# 2. Inspeciona a linha onde o erro ocorreu (Se os dados estiverem ok, ignore)
-# Como o erro é no começo, as primeiras linhas são suficientes.
-
-# 3. Fazemos um teste de exceção para capturar a tupla exata que está quebrando:
-try:
-    cursor.executemany(sql, dados)
-except mysql.connector.errors.ProgrammingError as e:
-    # A exceção deve ser tratada aqui para imprimir o dado que falhou.
-    
-    # OBS: O executemany não informa o índice exato da falha.
-    # Para capturar o índice exato, teríamos que usar o loop de execução 
-    # individual (cursor.execute) e inspecionar onde a falha acontece.
-    
-    print("\nERRO DE EXECUÇÃO SQL: Detalhes acima.")
-    print("Por favor, confira se há a string 'nan' nas primeiras tuplas impressas.")
-    raise e # Relança o erro para interromper a execução
 
 total_deals = cursor.rowcount
 

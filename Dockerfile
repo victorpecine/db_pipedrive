@@ -4,44 +4,47 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV TZ=America/Sao_Paulo
 
-# Instala dependências do sistema
+# Build args (serão injetados no envsubst)
+ARG PIPEDRIVE_API_KEY
+ARG PIPEDRIVE_BASE_URL
+ARG MYSQL_USER
+ARG MYSQL_PASSWORD
+ARG MYSQL_DATABASE
+ARG TIMEZONE
+
+# Dependências do sistema
 RUN apt-get update && apt-get install -y \
     cron \
     procps \
     tzdata \
     nano \
+    netcat-openbsd \
+    gettext-base \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
-# Define o diretório de trabalho
+# Diretório de trabalho
 WORKDIR /app
 
-# Copia e instala dependências do Python
-COPY requirements.txt .
+# Copia dependências e código-fonte
+COPY requirements.txt /app/
+COPY . /app
+
+# Permissões do wait-for-it
+RUN chmod +x /app/wait-for-it.sh
+
+# Instala dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia os arquivos da aplicação (scripts Python) e o wrapper
-COPY . /app
-COPY start.sh /usr/local/bin/start.sh
+# Diretório de logs
+RUN mkdir -p /app/logs && touch /app/logs/cron.log
 
-# Permissões para o script de inicialização
-RUN chmod +x /usr/local/bin/start.sh
+# Copia crontab original
+COPY crontab /etc/cron.d/pipedrive_cron
 
-# Cria diretório para logs e log file
-RUN mkdir -p /app/logs
-RUN touch /app/logs/cron.log
+RUN chmod 0644 /etc/cron.d/pipedrive_cron \
+    && chown root:root /etc/cron.d/pipedrive_cron \
+    && dos2unix /etc/cron.d/pipedrive_cron
 
-# Cron a cada 1 hora, seg-sex, 9h às 16h
-# NOTA: O script start.sh garante que as variáveis do .env estarão no ambiente
-RUN echo "0 9-16 * * 1-5 cd /app && \
-/usr/local/bin/python deals.py && \
-/usr/local/bin/python fields.py && \
-/usr/local/bin/python pipelines.py && \
-/usr/local/bin/python stages.py && \
-/usr/local/bin/python users.py \
->> /app/logs/cron.log 2>&1" > /etc/cron.d/pipedrive_cron
-
-# Permissões
-RUN chmod 0644 /etc/cron.d/pipedrive_cron
-
-# Inicia o script wrapper, que exporta o ambiente e executa o cron -f
-CMD ["/usr/local/bin/start.sh"]
+# Inicia cron no foreground
+CMD ["cron", "-f"]
