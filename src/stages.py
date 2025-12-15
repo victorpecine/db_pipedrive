@@ -29,39 +29,44 @@ params = {"api_token": API_KEY}
 r = requests.get(url, params=params)
 data = r.json().get("data", [])
 
-conn = mysql.connector.connect(
-    host=DB_HOST,
-    # host="localhost",  # Para teste local
-    # port=3310,  # Para teste local
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database=DB_DATABASE 
-)
+try:
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        # host="localhost",  # Para teste local
+        # port=3310,  # Para teste local
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_DATABASE 
+    )
 
-cursor = conn.cursor()
+    cursor = conn.cursor()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tb_stages (
-    id BIGINT PRIMARY KEY,
-    pipeline_id BIGINT,
-    name VARCHAR(255)
-);
-""")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tb_stages (
+        id BIGINT PRIMARY KEY,
+        pipeline_id BIGINT,
+        name VARCHAR(255)
+    );
+    """)
 
-sql = """
-INSERT INTO tb_stages (id, pipeline_id, name)
-VALUES (%s, %s, %s)
-ON DUPLICATE KEY UPDATE
-    name = VALUES(name),
-    pipeline_id = VALUES(pipeline_id);
-"""
+    sql = """
+    INSERT INTO tb_stages (id, pipeline_id, name)
+    VALUES (%s, %s, %s)
+    ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        pipeline_id = VALUES(pipeline_id);
+    """
 
-valores = [(s["id"], s["pipeline_id"], s["name"]) for s in data]
+    valores = [(s["id"], s["pipeline_id"], s["name"]) for s in data]
 
-cursor.executemany(sql, valores)
-conn.commit()
+    cursor.executemany(sql, valores)
+    conn.commit()
 
-print(f"\n{cursor.rowcount} stages inseridos/atualizados em tb_stages")
+    print(f"\n{cursor.rowcount} stages inseridos/atualizados em tb_stages")
 
-cursor.close()
-conn.close()
+except mysql.connector.Error as err:
+    print(f"Erro de Banco de Dados: {err}")
+
+finally:
+    cursor.close()
+    conn.close()

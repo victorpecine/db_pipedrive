@@ -41,91 +41,95 @@ data = response.get("data", [])
 # ===============================
 # CONEXÃO MYSQL
 # ===============================
+try:
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        # host="localhost",  # Para teste local
+        # port=3310,  # Para teste local
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_DATABASE 
+    )
 
-conn = mysql.connector.connect(
-    host=DB_HOST,
-    # host="localhost",  # Para teste local
-    # port=3310,  # Para teste local
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database=DB_DATABASE 
-)
+    cursor = conn.cursor()
 
-cursor = conn.cursor()
+    # ===============================
+    # CRIA TABELA
+    # ===============================
 
-# ===============================
-# CRIA TABELA
-# ===============================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tb_fields_deals (
+        id BIGINT PRIMARY KEY,
+        field_key VARCHAR(255),
+        name VARCHAR(255),
+        field_type VARCHAR(100),
+        entity_type VARCHAR(50),
+        is_mandatory BOOLEAN,
+        is_custom BOOLEAN
+    );
+    """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tb_fields_deals (
-    id BIGINT PRIMARY KEY,
-    field_key VARCHAR(255),
-    name VARCHAR(255),
-    field_type VARCHAR(100),
-    entity_type VARCHAR(50),
-    is_mandatory BOOLEAN,
-    is_custom BOOLEAN
-);
-""")
+    # ===============================
+    # MONTAGEM DOS DADOS
+    # ===============================
 
-# ===============================
-# MONTAGEM DOS DADOS
-# ===============================
+    valores = []
+    sem_id = 0
 
-valores = []
-sem_id = 0
+    for f in data:
+        field_id = f.get("id")
+        field_key = f.get("key")
 
-for f in data:
-    field_id = f.get("id")
-    field_key = f.get("key")
+        # Se não tiver id, usa hash da key
+        if field_id is None and field_key:
+            field_id = abs(hash(field_key)) % (10**12)
 
-    # Se não tiver id, usa hash da key
-    if field_id is None and field_key:
-        field_id = abs(hash(field_key)) % (10**12)
+        if field_id is None:
+            sem_id += 1
+            continue
 
-    if field_id is None:
-        sem_id += 1
-        continue
+        valores.append((
+            field_id,
+            field_key,
+            f.get("name"),
+            f.get("field_type"),
+            f.get("entity_type"),
+            f.get("is_mandatory"),
+            f.get("edit_flag")   # indica se é customizado
+        ))
 
-    valores.append((
-        field_id,
+    # ===============================
+    # UPSERT
+    # ===============================
+
+    sql = """
+    INSERT INTO tb_fields_deals (
+        id,
         field_key,
-        f.get("name"),
-        f.get("field_type"),
-        f.get("entity_type"),
-        f.get("is_mandatory"),
-        f.get("edit_flag")   # indica se é customizado
-    ))
+        name,
+        field_type,
+        entity_type,
+        is_mandatory,
+        is_custom
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ON DUPLICATE KEY UPDATE
+        field_key   = VALUES(field_key),
+        name        = VALUES(name),
+        field_type  = VALUES(field_type),
+        entity_type = VALUES(entity_type),
+        is_mandatory= VALUES(is_mandatory),
+        is_custom   = VALUES(is_custom);
+    """
 
-# ===============================
-# UPSERT
-# ===============================
+    cursor.executemany(sql, valores)
+    conn.commit()
 
-sql = """
-INSERT INTO tb_fields_deals (
-    id,
-    field_key,
-    name,
-    field_type,
-    entity_type,
-    is_mandatory,
-    is_custom
-)
-VALUES (%s, %s, %s, %s, %s, %s, %s)
-ON DUPLICATE KEY UPDATE
-    field_key   = VALUES(field_key),
-    name        = VALUES(name),
-    field_type  = VALUES(field_type),
-    entity_type = VALUES(entity_type),
-    is_mandatory= VALUES(is_mandatory),
-    is_custom   = VALUES(is_custom);
-"""
+    print(f"\n{cursor.rowcount} fields inseridos/atualizados em tb_fields")
 
-cursor.executemany(sql, valores)
-conn.commit()
+except mysql.connector.Error as err:
+    print(f"Erro de Banco de Dados: {err}")
 
-print(f"\n{cursor.rowcount} fields inseridos/atualizados em tb_fields")
-
-cursor.close()
-conn.close()
+finally:
+    cursor.close()
+    conn.close()

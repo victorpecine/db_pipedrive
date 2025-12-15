@@ -124,7 +124,7 @@ colunas_sql_order = [
 
 df_ordenado = df[colunas_sql_order]
 
-# 🛑 NOVO BLOCO: SERIALIZAÇÃO MANUAL PARA GARANTIR None/NULL
+# Serialização para garantir None/NULL
 dados = []
 for index, row in df_ordenado.iterrows():
     tupla = []
@@ -148,114 +148,105 @@ for index, row in df_ordenado.iterrows():
 # ===============================
 # CONEXÃO MYSQL
 # ===============================
-
-conn = mysql.connector.connect(
-    host=DB_HOST,
-    # host="localhost",  # Para teste local
-    # port=3310,  # Para teste local
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database=DB_DATABASE 
-)
-
-cursor = conn.cursor()
-
-# ===============================
-# CRIA TABELA (se não existir)
-# ===============================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tb_deals (
-    id                BIGINT NOT NULL,
-    title             VARCHAR(255),
-    cod_cliente       VARCHAR(255),
-    value             DECIMAL(15,2),
-    currency          VARCHAR(10),
-    status            VARCHAR(50),
-    pipeline_id       BIGINT,
-    stage_id          BIGINT,
-    id_responsavel    BIGINT,
-    nome_responsavel  VARCHAR(255),
-    nome_cliente      VARCHAR(255),
-    nome_empresa      VARCHAR(255),
-    add_time          DATETIME,
-    update_time       DATETIME,
-    close_time        DATETIME,
-    won_time          DATETIME,
-    lost_time         DATETIME,
-    PRIMARY KEY (id)
-);
-""")
-
-# ===============================
-# UPSERT
-# ===============================
-
-sql = """
-INSERT INTO tb_deals (
-    id, title,
-    cod_cliente, value,
-    currency, status,
-    pipeline_id, stage_id,
-    id_responsavel, nome_responsavel,
-    nome_cliente,
-    nome_empresa, add_time,
-    update_time, close_time,
-    won_time, lost_time
-)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-
-ON DUPLICATE KEY UPDATE
-    title               = VALUES(title),
-    value               = VALUES(value),
-    cod_cliente         = VALUES(cod_cliente),
-    currency            = VALUES(currency),
-    status              = VALUES(status),
-    pipeline_id         = VALUES(pipeline_id),
-    stage_id            = VALUES(stage_id),
-    id_responsavel      = VALUES(id_responsavel),
-    nome_responsavel    = VALUES(nome_responsavel),
-    nome_cliente        = VALUES(nome_cliente),
-    nome_empresa        = VALUES(nome_empresa),
-    add_time            = VALUES(add_time),
-    update_time         = VALUES(update_time),
-    close_time          = VALUES(close_time),
-    won_time            = VALUES(won_time),
-    lost_time           = VALUES(lost_time);
-"""
-
-# Define a ordem exata das 17 colunas para garantir o alinhamento 
-# com a query SQL abaixo (UPSERT).
-colunas_sql_order = [
-    "id", "title", "cod_cliente", "value",
-    "currency", "status", "pipeline_id", "stage_id",
-    "id_responsavel", "nome_responsavel",
-    "nome_cliente", "nome_empresa", 
-    "add_time", "update_time",
-    "close_time", "won_time", "lost_time"
-]
-
-df_ordenado = df[colunas_sql_order]
-# cursor.executemany(sql, dados)
-
-total_deals = cursor.rowcount
-
-# Cria tabela para conter timestamp da atualização
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS atualizacoes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        data_atualizacao DATETIME NOT NULL,
-        total_deals INT NOT NULL
+try:
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        # host="localhost",  # Para teste local
+        # port=3310,  # Para teste local
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_DATABASE 
     )
+
+    cursor = conn.cursor()
+
+    # ===============================
+    # CRIA TABELA (se não existir)
+    # ===============================
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tb_deals (
+        id                BIGINT NOT NULL,
+        title             VARCHAR(255),
+        cod_cliente       VARCHAR(255),
+        value             DECIMAL(15,2),
+        currency          VARCHAR(10),
+        status            VARCHAR(50),
+        pipeline_id       BIGINT,
+        stage_id          BIGINT,
+        id_responsavel    BIGINT,
+        nome_responsavel  VARCHAR(255),
+        nome_cliente      VARCHAR(255),
+        nome_empresa      VARCHAR(255),
+        add_time          DATETIME,
+        update_time       DATETIME,
+        close_time        DATETIME,
+        won_time          DATETIME,
+        lost_time         DATETIME,
+        PRIMARY KEY (id)
+    );
     """)
-timestamp = datetime.now(ZoneInfo("America/Sao_Paulo"))
-cursor.execute(
-    "INSERT INTO atualizacoes (data_atualizacao, total_deals) VALUES (%s, %s)", (timestamp, total_deals)
+
+    # ===============================
+    # UPSERT
+    # ===============================
+
+    sql = """
+    INSERT INTO tb_deals (
+        id, title,
+        cod_cliente, value,
+        currency, status,
+        pipeline_id, stage_id,
+        id_responsavel, nome_responsavel,
+        nome_cliente,
+        nome_empresa, add_time,
+        update_time, close_time,
+        won_time, lost_time
     )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
-conn.commit()
+    ON DUPLICATE KEY UPDATE
+        title               = VALUES(title),
+        value               = VALUES(value),
+        cod_cliente         = VALUES(cod_cliente),
+        currency            = VALUES(currency),
+        status              = VALUES(status),
+        pipeline_id         = VALUES(pipeline_id),
+        stage_id            = VALUES(stage_id),
+        id_responsavel      = VALUES(id_responsavel),
+        nome_responsavel    = VALUES(nome_responsavel),
+        nome_cliente        = VALUES(nome_cliente),
+        nome_empresa        = VALUES(nome_empresa),
+        add_time            = VALUES(add_time),
+        update_time         = VALUES(update_time),
+        close_time          = VALUES(close_time),
+        won_time            = VALUES(won_time),
+        lost_time           = VALUES(lost_time);
+    """
 
-print(f"\n{total_deals} deals inseridos/atualizados em tb_deals")
+    cursor.executemany(sql, dados)
 
-cursor.close()
-conn.close()
+    total_deals = cursor.rowcount
+
+    # Cria tabela para conter timestamp da atualização
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS atualizacoes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            data_atualizacao DATETIME NOT NULL,
+            total_deals INT NOT NULL
+        )
+        """)
+    timestamp = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    cursor.execute(
+        "INSERT INTO atualizacoes (data_atualizacao, total_deals) VALUES (%s, %s)", (timestamp, total_deals)
+        )
+
+    conn.commit()
+
+    print(f"\n{total_deals} deals inseridos/atualizados em tb_deals")
+except mysql.connector.Error as err:
+    print(f"Erro de Banco de Dados: {err}")
+
+finally:
+    cursor.close()
+    conn.close()

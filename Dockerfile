@@ -30,6 +30,7 @@ WORKDIR /app
 COPY requirements.txt /app/
 COPY src /app/src
 COPY wait-for-it.sh /app/wait-for-it.sh
+COPY .env /app/.env
 
 # Permissões do wait-for-it
 RUN chmod +x /app/wait-for-it.sh

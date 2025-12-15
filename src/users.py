@@ -28,45 +28,49 @@ params = {"api_token": API_KEY}
 
 r = requests.get(url, params=params)
 data = r.json().get("data", [])
-
-conn = mysql.connector.connect(
-    host=DB_HOST,
-    # host="localhost",  # Para teste local
-    # port=3310,  # Para teste local
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database=DB_DATABASE 
-)
-
-cursor = conn.cursor()
-
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS tb_users (
-        id BIGINT PRIMARY KEY,
-        name VARCHAR(255)
-    );
-    """)
-
-sql = """
-    INSERT INTO tb_users (id, name)
-    VALUES (%s, %s)
-    ON DUPLICATE KEY UPDATE
-        name = VALUES(name);
-    """
-
-# Pega os valores do JSON
-valores = [
-    (
-        u["id"],
-        u["name"]
+try:
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        # host="localhost",  # Para teste local
+        # port=3310,  # Para teste local
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_DATABASE 
     )
-    for u in data
-]
 
-cursor.executemany(sql, valores)
-conn.commit()
+    cursor = conn.cursor()
 
-print(f"\n{cursor.rowcount} users inseridos/atualizados em tb_users")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tb_users (
+            id BIGINT PRIMARY KEY,
+            name VARCHAR(255)
+        );
+        """)
 
-cursor.close()
-conn.close()
+    sql = """
+        INSERT INTO tb_users (id, name)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE
+            name = VALUES(name);
+        """
+
+    # Pega os valores do JSON
+    valores = [
+        (
+            u["id"],
+            u["name"]
+        )
+        for u in data
+    ]
+
+    cursor.executemany(sql, valores)
+    conn.commit()
+
+    print(f"\n{cursor.rowcount} users inseridos/atualizados em tb_users")
+
+except mysql.connector.Error as err:
+    print(f"Erro de Banco de Dados: {err}")
+
+finally:
+    cursor.close()
+    conn.close()

@@ -28,38 +28,42 @@ params = {"api_token": API_KEY}
 
 r = requests.get(url, params=params)
 data = r.json().get("data", [])
+try:
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        # host="localhost",  # Para teste local
+        # port=3310,  # Para teste local
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_DATABASE 
+    )
 
-conn = mysql.connector.connect(
-    host=DB_HOST,
-    # host="localhost",  # Para teste local
-    # port=3310,  # Para teste local
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database=DB_DATABASE 
-)
+    cursor = conn.cursor()
 
-cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tb_pipelines (
+        id BIGINT PRIMARY KEY,
+        name VARCHAR(255)
+    );
+    """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tb_pipelines (
-    id BIGINT PRIMARY KEY,
-    name VARCHAR(255)
-);
-""")
+    sql = """
+    INSERT INTO tb_pipelines (id, name)
+    VALUES (%s, %s)
+    ON DUPLICATE KEY UPDATE
+        name = VALUES(name);
+    """
 
-sql = """
-INSERT INTO tb_pipelines (id, name)
-VALUES (%s, %s)
-ON DUPLICATE KEY UPDATE
-    name = VALUES(name);
-"""
+    valores = [(p["id"], p["name"]) for p in data]
 
-valores = [(p["id"], p["name"]) for p in data]
+    cursor.executemany(sql, valores)
+    conn.commit()
 
-cursor.executemany(sql, valores)
-conn.commit()
+    print(f"\n{cursor.rowcount} pipelines inseridos/atualizados em tb_pipelines")
 
-print(f"\n{cursor.rowcount} pipelines inseridos/atualizados em tb_pipelines")
+except mysql.connector.Error as err:
+    print(f"Erro de Banco de Dados: {err}")
 
-cursor.close()
-conn.close()
+finally:
+    cursor.close()
+    conn.close()
