@@ -28,7 +28,8 @@ WORKDIR /app
 
 # Copia dependências e código-fonte
 COPY requirements.txt /app/
-COPY . /app
+COPY src /app/src
+COPY wait-for-it.sh /app/wait-for-it.sh
 
 # Permissões do wait-for-it
 RUN chmod +x /app/wait-for-it.sh

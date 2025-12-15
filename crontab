@@ -1,7 +1,7 @@
 TZ=America/Sao_Paulo
 
-0 9-16 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/deals.py >> /app/logs/cron.log 2>&1
-0 9-16 * * 1-5 root /usr/local/bin/python /app/fields.py >> /app/logs/cron.log 2>&1
-0 9-16 * * 1-5 root /usr/local/bin/python /app/pipelines.py >> /app/logs/cron.log 2>&1
-0 9-16 * * 1-5 root /usr/local/bin/python /app/stages.py >> /app/logs/cron.log 2>&1
-0 9-16 * * 1-5 root /usr/local/bin/python /app/users.py >> /app/logs/cron.log 2>&1
+0 9-16 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/src/deals.py >> /app/logs/cron.log 2>&1
+0 9-16 * * 1-5 root /usr/local/bin/python /app/src/fields.py >> /app/logs/cron.log 2>&1
+0 9-16 * * 1-5 root /usr/local/bin/python /app/src/pipelines.py >> /app/logs/cron.log 2>&1
+0 9-16 * * 1-5 root /usr/local/bin/python /app/src/stages.py >> /app/logs/cron.log 2>&1
+0 9-16 * * 1-5 root /usr/local/bin/python /app/src/users.py >> /app/logs/cron.log 2>&1
