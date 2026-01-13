@@ -94,6 +94,7 @@ df = df[[
     "org_id.name",
     "add_time",
     "update_time",
+    "2ad149d52679d84b85414d1d322c832fd053602c",  # Campo personalizado "Data da primeira atividade"
     "close_time",
     "won_time",
     "lost_time"
@@ -106,19 +107,39 @@ df = df.rename(
         "user_id.name": "nome_responsavel",
         "person_id.name": "nome_cliente",
         "org_id.name": "nome_empresa",
-        "6564ef40269f2f1d4d0783d8b73b79773e13b158": "cod_cliente"
+        "6564ef40269f2f1d4d0783d8b73b79773e13b158": "cod_cliente",
+        "2ad149d52679d84b85414d1d322c832fd053602c": "data_primeira_atividade"
 })
+
+# Conversão de timezone UTC para America/Sao_Paulo
+colunas_data = [
+    'add_time',
+    'update_time',
+    # 'data_primeira_atividade', # Já está com timezone correto
+    'close_time',
+    'won_time',
+    'lost_time'
+]
+
+for col in colunas_data:
+    if col in df.columns:
+        df[col] = (
+            pd.to_datetime(df[col], errors='coerce', utc=True)
+              .dt.tz_convert('America/Sao_Paulo')
+              .dt.tz_localize(None)
+        )
 
 # Troca NaN por None (para virar NULL no MySQL)
 df = df.where(pd.notnull(df), None)
-# Define a ordem exata das 17 colunas para garantir o alinhamento 
+
+# Define a ordem exata das colunas para garantir o alinhamento 
 # com a query SQL abaixo (UPSERT).
 colunas_sql_order = [
     "id", "title", "cod_cliente", "value",
     "currency", "status", "pipeline_id", "stage_id",
     "id_responsavel", "nome_responsavel",
     "nome_cliente", "nome_empresa", 
-    "add_time", "update_time",
+    "add_time", "update_time", "data_primeira_atividade",
     "close_time", "won_time", "lost_time"
 ]
 
@@ -166,23 +187,24 @@ try:
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tb_deals (
-        id                BIGINT NOT NULL,
-        title             VARCHAR(255),
-        cod_cliente       VARCHAR(255),
-        value             DECIMAL(15,2),
-        currency          VARCHAR(10),
-        status            VARCHAR(50),
-        pipeline_id       BIGINT,
-        stage_id          BIGINT,
-        id_responsavel    BIGINT,
-        nome_responsavel  VARCHAR(255),
-        nome_cliente      VARCHAR(255),
-        nome_empresa      VARCHAR(255),
-        add_time          DATETIME,
-        update_time       DATETIME,
-        close_time        DATETIME,
-        won_time          DATETIME,
-        lost_time         DATETIME,
+        id                      BIGINT NOT NULL,
+        title                   VARCHAR(255),
+        cod_cliente             VARCHAR(255),
+        value                   DECIMAL(15,2),
+        currency                VARCHAR(10),
+        status                  VARCHAR(50),
+        pipeline_id             BIGINT,
+        stage_id                BIGINT,
+        id_responsavel          BIGINT,
+        nome_responsavel        VARCHAR(255),
+        nome_cliente            VARCHAR(255),
+        nome_empresa            VARCHAR(255),
+        add_time                DATETIME,
+        update_time             DATETIME,
+        data_primeira_atividade DATETIME,
+        close_time              DATETIME,
+        won_time                DATETIME,
+        lost_time               DATETIME,
         PRIMARY KEY (id)
     );
     """)
@@ -200,28 +222,29 @@ try:
         id_responsavel, nome_responsavel,
         nome_cliente,
         nome_empresa, add_time,
-        update_time, close_time,
+        update_time, close_time, data_primeira_atividade,
         won_time, lost_time
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
     ON DUPLICATE KEY UPDATE
-        title               = VALUES(title),
-        value               = VALUES(value),
-        cod_cliente         = VALUES(cod_cliente),
-        currency            = VALUES(currency),
-        status              = VALUES(status),
-        pipeline_id         = VALUES(pipeline_id),
-        stage_id            = VALUES(stage_id),
-        id_responsavel      = VALUES(id_responsavel),
-        nome_responsavel    = VALUES(nome_responsavel),
-        nome_cliente        = VALUES(nome_cliente),
-        nome_empresa        = VALUES(nome_empresa),
-        add_time            = VALUES(add_time),
-        update_time         = VALUES(update_time),
-        close_time          = VALUES(close_time),
-        won_time            = VALUES(won_time),
-        lost_time           = VALUES(lost_time);
+        title                   = VALUES(title),
+        value                   = VALUES(value),
+        cod_cliente             = VALUES(cod_cliente),
+        currency                = VALUES(currency),
+        status                  = VALUES(status),
+        pipeline_id             = VALUES(pipeline_id),
+        stage_id                = VALUES(stage_id),
+        id_responsavel          = VALUES(id_responsavel),
+        nome_responsavel        = VALUES(nome_responsavel),
+        nome_cliente            = VALUES(nome_cliente),
+        nome_empresa            = VALUES(nome_empresa),
+        add_time                = VALUES(add_time),
+        update_time             = VALUES(update_time),
+        close_time              = VALUES(close_time),
+        data_primeira_atividade = VALUES(data_primeira_atividade),
+        won_time                = VALUES(won_time),
+        lost_time               = VALUES(lost_time);
     """
 
     cursor.executemany(sql, dados)
@@ -238,7 +261,8 @@ try:
         """)
     timestamp = datetime.now(ZoneInfo("America/Sao_Paulo"))
     cursor.execute(
-        "INSERT INTO atualizacoes (data_atualizacao, total_deals) VALUES (%s, %s)", (timestamp, total_deals)
+        "INSERT INTO atualizacoes (data_atualizacao, total_deals) VALUES (%s, %s)",
+        (timestamp, total_deals)
         )
 
     conn.commit()
