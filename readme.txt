@@ -1,5 +1,6 @@
 # Construção e criação
-docker-compose build --no-cache && docker-compose -p pipedrive up -d
+docker-compose down
+docker-compose -p pipedrive build --no-cache && docker-compose -p pipedrive up -d
 
 # Testar manualmente o deals.py
 docker exec -it pipedrive_cron bash

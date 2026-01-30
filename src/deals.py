@@ -139,11 +139,15 @@ colunas_sql_order = [
     "currency", "status", "pipeline_id", "stage_id",
     "id_responsavel", "nome_responsavel",
     "nome_cliente", "nome_empresa", 
-    "add_time", "update_time", "data_primeira_atividade",
-    "close_time", "won_time", "lost_time"
+    "add_time", "update_time", "close_time", 
+    "data_primeira_atividade",
+    "won_time", "lost_time"
 ]
 
 df_ordenado = df[colunas_sql_order]
+
+# IDs de deals atualmente existentes no Pipedrive
+ids_api = set(df_ordenado["id"].tolist())
 
 # Serialização para garantir None/NULL
 dados = []
@@ -166,9 +170,7 @@ for index, row in df_ordenado.iterrows():
             
     dados.append(tuple(tupla))
 
-# ===============================
-# CONEXÃO MYSQL
-# ===============================
+# Conexão MySql
 try:
     conn = mysql.connector.connect(
         host=DB_HOST,
@@ -180,10 +182,6 @@ try:
     )
 
     cursor = conn.cursor()
-
-    # ===============================
-    # CRIA TABELA (se não existir)
-    # ===============================
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tb_deals (
@@ -201,17 +199,16 @@ try:
         nome_empresa            VARCHAR(255),
         add_time                DATETIME,
         update_time             DATETIME,
-        data_primeira_atividade DATETIME,
         close_time              DATETIME,
+        data_primeira_atividade DATETIME,
         won_time                DATETIME,
         lost_time               DATETIME,
+        deal_deleted            TINYINT NOT NULL DEFAULT 0,
         PRIMARY KEY (id)
     );
     """)
 
-    # ===============================
-    # UPSERT
-    # ===============================
+    # Upsert dos dados na tabela tb_deals
 
     sql = """
     INSERT INTO tb_deals (
@@ -223,9 +220,9 @@ try:
         nome_cliente,
         nome_empresa, add_time,
         update_time, close_time, data_primeira_atividade,
-        won_time, lost_time
+        won_time, lost_time, deal_deleted
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
 
     ON DUPLICATE KEY UPDATE
         title                   = VALUES(title),
@@ -244,12 +241,28 @@ try:
         close_time              = VALUES(close_time),
         data_primeira_atividade = VALUES(data_primeira_atividade),
         won_time                = VALUES(won_time),
-        lost_time               = VALUES(lost_time);
+        lost_time               = VALUES(lost_time),
+        deal_deleted            = 0;
     """
 
     cursor.executemany(sql, dados)
 
-    total_deals = cursor.rowcount
+    # IDs de deals ainda ativos no banco
+    cursor.execute("SELECT id FROM tb_deals")
+    ids_mysql = {row[0] for row in cursor.fetchall()}
+
+    # Deals removidos do Pipedrive
+    ids_excluidos = ids_mysql - ids_api
+
+    # Marca deals excluídos
+    if ids_excluidos:
+        cursor.executemany(
+            "UPDATE tb_deals SET deal_deleted = 1 WHERE id = %s",
+            [(i,) for i in ids_excluidos]
+        )
+
+    # total_deals = cursor.rowcount
+    total_deals = len(ids_api)
 
     # Cria tabela para conter timestamp da atualização
     cursor.execute("""
