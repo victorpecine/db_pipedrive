@@ -4,15 +4,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV TZ=America/Sao_Paulo
 
-# Build args (serão injetados no envsubst)
+# Build args - Mantendo MySQL e Adicionando PostgreSQL
 ARG PIPEDRIVE_API_KEY
 ARG PIPEDRIVE_BASE_URL
 ARG MYSQL_USER
 ARG MYSQL_PASSWORD
 ARG MYSQL_DATABASE
+ARG DB_USER
+ARG DB_PASSWORD
+ARG DB_DATABASE
 ARG TIMEZONE
 
-# Dependências do sistema
+# Dependências do sistema (Adicionado libpq-dev e gcc para o Postgres)
 RUN apt-get update && apt-get install -y \
     cron \
     procps \
@@ -21,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     gettext-base \
     dos2unix \
+    libpq-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Diretório de trabalho
@@ -35,7 +40,7 @@ COPY .env /app/.env
 # Permissões do wait-for-it
 RUN chmod +x /app/wait-for-it.sh
 
-# Instala dependências Python
+# Instala dependências Python (O requirements.txt deve conter as duas libs agora)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Diretório de logs
