@@ -2,6 +2,8 @@ services:
   postgres:
     image: postgres:16
     container_name: pipedrive_postgre_db
+    networks:
+      - pipedrive_net
     environment:
       TZ: America/Sao_Paulo
       POSTGRES_PASSWORD: admin
@@ -25,6 +27,8 @@ services:
         - DB_DATABASE
         - TIMEZONE
     container_name: pipedrive_postgre_cron
+    networks:
+      - pipedrive_net
     env_file:
       - .env
     environment:
@@ -35,6 +39,10 @@ services:
       - postgres
     restart: always
 
+networks:
+  pipedrive_net:
+    driver: bridge
+    
 volumes:
   db_pipedrive_postgre:
     name: db_pipedrive_postgre

@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV TZ=America/Sao_Paulo
 
-# Build args - Mantendo MySQL e Adicionando PostgreSQL
+# Build args
 ARG PIPEDRIVE_API_KEY
 ARG PIPEDRIVE_BASE_URL
 ARG MYSQL_USER
@@ -15,7 +15,7 @@ ARG DB_PASSWORD
 ARG DB_DATABASE
 ARG TIMEZONE
 
-# Dependências do sistema (Adicionado libpq-dev e gcc para o Postgres)
+# Dependências do sistema
 RUN apt-get update && apt-get install -y \
     cron \
     procps \
@@ -28,30 +28,25 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Diretório de trabalho
 WORKDIR /app
 
-# Copia dependências e código-fonte
 COPY requirements.txt /app/
 COPY src /app/src
 COPY wait-for-it.sh /app/wait-for-it.sh
 COPY .env /app/.env
 
-# Permissões do wait-for-it
 RUN chmod +x /app/wait-for-it.sh
 
-# Instala dependências Python (O requirements.txt deve conter as duas libs agora)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Diretório de logs
 RUN mkdir -p /app/logs && touch /app/logs/cron.log
 
-# Copia crontab original
-COPY crontab /etc/cron.d/pipedrive_cron
+# Copia crontab
+COPY crontab /etc/cron.d/pipedrive_postgre_cron
 
-RUN chmod 0644 /etc/cron.d/pipedrive_cron \
-    && chown root:root /etc/cron.d/pipedrive_cron \
-    && dos2unix /etc/cron.d/pipedrive_cron
+RUN dos2unix /app/wait-for-it.sh /etc/cron.d/pipedrive_postgre_cron \
+    && chmod 0644 /etc/cron.d/pipedrive_postgre_cron \
+    && chown root:root /etc/cron.d/pipedrive_postgre_cron \
+    && crontab /etc/cron.d/pipedrive_postgre_cron
 
-# Inicia cron no foreground
 CMD ["cron", "-f"]

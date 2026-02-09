@@ -20,6 +20,7 @@ python3 src/stages_postgre.py && python3 src/fields_postgre.py && python3 src/pi
 docker exec -it pipedrive_cron bash
 ls -l /etc/cron.d/pipedrive_cron
 cat /etc/cron.d/pipedrive_cron
+docker exec -it pipedrive_postgre_cron cat /app/logs/cron.log
 
 # Reconstruir apenas a imagem do serviço cron
 docker-compose -p pipedrive build cron
