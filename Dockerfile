@@ -42,11 +42,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /app/logs && touch /app/logs/cron.log
 
 # Copia crontab original
-COPY crontab /etc/cron.d/pipedrive_mysql_cron
+COPY crontab /etc/cron.d/mysql_cron
 
-RUN chmod 0644 /etc/cron.d/pipedrive_mysql_cron \
-    && chown root:root /etc/cron.d/pipedrive_mysql_cron \
-    && dos2unix /etc/cron.d/pipedrive_mysql_cron
+RUN chmod 0644 /etc/cron.d/mysql_cron \
+    && chown root:root /etc/cron.d/mysql_cron \
+    && dos2unix /etc/cron.d/mysql_cron
 
 # Inicia cron no foreground
 CMD ["cron", "-f"]
