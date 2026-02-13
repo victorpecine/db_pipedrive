@@ -1,8 +1,8 @@
 # Parar o container
-docker-compose pipedrive down
+docker-compose pipedrive_postgre down
 
 # Construção e criação
-docker-compose -p pipedrive build --no-cache && docker-compose -p pipedrive up -d
+docker-compose -p pipedrive_postgre build --no-cache && docker-compose -p pipedrive_postgre up -d
 
 # Testar manualmente o deals.py
 docker exec -it postgre_cron bash
@@ -18,10 +18,10 @@ ls -l /etc/cron.d/postgre_cron
 cat /etc/cron.d/postgre_cron
 
 # Reconstruir apenas a imagem do serviço cron
-docker-compose -p pipedrive build cron
+docker-compose -p pipedrive_postgre build postgre_cron
 
 # Recriar apenas o container cron
-docker-compose -p pipedrive up -d --no-deps --force-recreate cron
+docker-compose -p pipedrive_postgre up -d --no-deps --force-recreate cron
 
 # Teste cron no bash docker
     1. Entrar no container
