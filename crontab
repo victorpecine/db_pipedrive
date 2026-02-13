@@ -4,10 +4,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 TZ=America/Sao_Paulo
 
 # Aguarda os bancos e executa os arquivos .py
-0 8-18 * * 1-5 /app/wait-for-it.sh postgres:5432 -t 60 && /usr/local/bin/python /app/src/deals.py >> /app/logs/cron.log 2>&1
-0 8-18 * * 1-5 /usr/local/bin/python /app/src/fields.py >> /app/logs/cron.log 2>&1
-0 8-18 * * 1-5 /usr/local/bin/python /app/src/pipelines.py >> /app/logs/cron.log 2>&1
-0 8-18 * * 1-5 /usr/local/bin/python /app/src/stages.py >> /app/logs/cron.log 2>&1
-0 8-18 * * 1-5 /usr/local/bin/python /app/src/users.py >> /app/logs/cron.log 2>&1
+0 8-18 * * 1-5 root /app/wait-for-it.sh postgres:5432 -t 60 && /usr/local/bin/python /app/src/deals.py >> /app/logs/cron.log 2>&1
+0 8-18 * * 1-5 root /usr/local/bin/python /app/src/fields.py >> /app/logs/cron.log 2>&1
+0 8-18 * * 1-5 root /usr/local/bin/python /app/src/pipelines.py >> /app/logs/cron.log 2>&1
+0 8-18 * * 1-5 root /usr/local/bin/python /app/src/stages.py >> /app/logs/cron.log 2>&1
+0 8-18 * * 1-5 root /usr/local/bin/python /app/src/users.py >> /app/logs/cron.log 2>&1
 
 # Mantenha esta linha vazia no final
