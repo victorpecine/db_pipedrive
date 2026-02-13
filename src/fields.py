@@ -1,62 +1,57 @@
 import os
 import requests
-import mysql.connector
-from   dotenv import load_dotenv
+import psycopg2
+from psycopg2 import extras
+from dotenv import load_dotenv
 
-
-# Carrega as variáveis de ambiente do arquivo .env no diretório atual
+# Carrega as variáveis de ambiente
 load_dotenv()
 
 API_KEY  = os.environ.get("PIPEDRIVE_API_KEY")
 BASE_URL = os.environ.get("PIPEDRIVE_BASE_URL")
 
-# Dados de Conexão MySQL
-DB_HOST     = "mysql"
-DB_USER     = os.environ.get("MYSQL_USER")
-DB_PASSWORD = os.environ.get("MYSQL_PASSWORD")
-DB_DATABASE = os.environ.get("MYSQL_DATABASE")
-
-# Fuso Horário
-TIMEZONE_NAME = os.environ.get("TIMEZONE", "America/Sao_Paulo")
+# Dados de Conexão PostgreSQL
+DB_HOST     = os.environ.get("DB_HOST", "postgres")
+DB_USER     = os.environ.get("DB_USER", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+DB_DATABASE = os.environ.get("DB_DATABASE")
+DB_PORT     = os.environ.get("DB_PORT", "5432")
 
 # ===============================
 # EXTRAÇÃO DE DADOS DO PIPEDRIVE
 # ===============================
-# Variáveis de Configuração de URL e Parâmetros
 url = f"{BASE_URL}/dealFields"
 params = {"api_token": API_KEY}
 
-# ===============================
-# REQUISIÇÃO
-# ===============================
-r = requests.get(url, params=params, timeout=30)
-response = r.json()
+print("\nIniciando coleta de Deal Fields do Pipedrive...")
+try:
+    r = requests.get(url, params=params, timeout=30)
+    r.raise_for_status()
+    response = r.json()
 
-if not response.get("success"):
-    print("Erro na API do Pipedrive")
+    if not response.get("success"):
+        print("Erro na API do Pipedrive")
+        exit()
+
+    data = response.get("data", [])
+except Exception as e:
+    print(f"Erro na requisição: {e}")
     exit()
 
-data = response.get("data", [])
-
 # ===============================
-# CONEXÃO MYSQL
+# PERSISTÊNCIA NO POSTGRESQL
 # ===============================
 try:
-    conn = mysql.connector.connect(
+    conn = psycopg2.connect(
         host=DB_HOST,
-        # host="localhost",  # Para teste local
-        # port=3310,  # Para teste local
         user=DB_USER,
         password=DB_PASSWORD,
-        database=DB_DATABASE 
+        database=DB_DATABASE,
+        port=DB_PORT
     )
-
     cursor = conn.cursor()
 
-    # ===============================
-    # CRIA TABELA
-    # ===============================
-
+    # Criação da Tabela (Sintaxe Postgres)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tb_fields_deals (
         id BIGINT PRIMARY KEY,
@@ -69,10 +64,7 @@ try:
     );
     """)
 
-    # ===============================
-    # MONTAGEM DOS DADOS
-    # ===============================
-
+    # Preparação dos dados
     valores = []
     sem_id = 0
 
@@ -80,7 +72,7 @@ try:
         field_id = f.get("id")
         field_key = f.get("key")
 
-        # Se não tiver id, usa hash da key
+        # Fallback para IDs ausentes
         if field_id is None and field_key:
             field_id = abs(hash(field_key)) % (10**12)
 
@@ -95,41 +87,34 @@ try:
             f.get("field_type"),
             f.get("entity_type"),
             f.get("is_mandatory"),
-            f.get("edit_flag")   # indica se é customizado
+            f.get("edit_flag")  # indica se é customizado
         ))
 
-    # ===============================
-    # UPSERT
-    # ===============================
-
-    sql = """
+    # SQL de UPSERT (Sintaxe ON CONFLICT do Postgres)
+    sql_upsert = """
     INSERT INTO tb_fields_deals (
-        id,
-        field_key,
-        name,
-        field_type,
-        entity_type,
-        is_mandatory,
-        is_custom
+        id, field_key, name, field_type, entity_type, is_mandatory, is_custom
     )
     VALUES (%s, %s, %s, %s, %s, %s, %s)
-    ON DUPLICATE KEY UPDATE
-        field_key   = VALUES(field_key),
-        name        = VALUES(name),
-        field_type  = VALUES(field_type),
-        entity_type = VALUES(entity_type),
-        is_mandatory= VALUES(is_mandatory),
-        is_custom   = VALUES(is_custom);
+    ON CONFLICT (id) DO UPDATE SET
+        field_key   = EXCLUDED.field_key,
+        name        = EXCLUDED.name,
+        field_type  = EXCLUDED.field_type,
+        entity_type = EXCLUDED.entity_type,
+        is_mandatory= EXCLUDED.is_mandatory,
+        is_custom   = EXCLUDED.is_custom;
     """
 
-    cursor.executemany(sql, valores)
+    # Execução em lote para melhor performance
+    extras.execute_batch(cursor, sql_upsert, valores)
+    
     conn.commit()
+    print(f"{len(valores)} fields sincronizados com sucesso no PostgreSQL.")
 
-    print(f"\n{cursor.rowcount} fields inseridos/atualizados em tb_fields")
-
-except mysql.connector.Error as err:
+except Exception as err:
     print(f"Erro de Banco de Dados: {err}")
+    if 'conn' in locals(): conn.rollback()
 
 finally:
-    cursor.close()
-    conn.close()
+    if 'cursor' in locals(): cursor.close()
+    if 'conn' in locals(): conn.close()
