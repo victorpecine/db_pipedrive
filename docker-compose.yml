@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: pipedrive_postgre_db
+    container_name: postgre_db
     networks:
       - pipedrive_net
     environment:
@@ -26,7 +26,7 @@ services:
         - DB_PASSWORD
         - DB_DATABASE
         - TIMEZONE
-    container_name: pipedrive_postgre_cron
+    container_name: postgre_cron
     networks:
       - pipedrive_net
     env_file:

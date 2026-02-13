@@ -39,11 +39,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /app/logs && touch /app/logs/cron.log
 
 # Copia crontab
-COPY crontab /etc/cron.d/pipedrive_postgre_cron
+COPY crontab /etc/cron.d/postgre_cron
 
-RUN dos2unix /app/wait-for-it.sh /etc/cron.d/pipedrive_postgre_cron \
-    && chmod 0644 /etc/cron.d/pipedrive_postgre_cron \
-    && chown root:root /etc/cron.d/pipedrive_postgre_cron \
-    && crontab /etc/cron.d/pipedrive_postgre_cron
+RUN dos2unix /app/wait-for-it.sh /etc/cron.d/postgre_cron \
+    && chmod 0644 /etc/cron.d/postgre_cron \
+    && chown root:root /etc/cron.d/postgre_cron \
+    && crontab /etc/cron.d/postgre_cron
 
 CMD ["cron", "-f"]
