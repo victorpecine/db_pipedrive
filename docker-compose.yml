@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.1
-    container_name: db_pipedrive
+    container_name: pipedrive_mysql_db
     environment:
       TZ: America/Sao_Paulo
       MYSQL_ROOT_PASSWORD: admin
@@ -9,7 +9,7 @@ services:
     ports:
       - "3310:3306"
     volumes:
-      - db_pipedrive:/var/lib/mysql
+      - pipedrive_mysql_db:/var/lib/mysql
     restart: always
 
   cron:
@@ -23,7 +23,7 @@ services:
         - MYSQL_PASSWORD
         - MYSQL_DATABASE
         - TIMEZONE
-    container_name: pipedrive_cron
+    container_name: pipedrive_mysql_cron
     env_file:
       - .env
     environment:
@@ -35,4 +35,4 @@ services:
 
 volumes:
   db_pipedrive:
-    name: db_pipedrive
+    name: db_pipedrive_mysql
