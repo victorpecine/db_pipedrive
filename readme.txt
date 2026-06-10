@@ -50,7 +50,11 @@ cat -A /etc/cron.d/postgre_cron
 # Não deve aparecer ^M no final das linhas
 
 7. Ver logs do cron
-cat /app/logs/cron.log
+cat /app/logs/deals.log
+cat /app/logs/fields.log
+cat /app/logs/pipelines.log
+cat /app/logs/stages.log
+cat /app/logs/users.log
 
 # Testar conexão manual com PostgreSQL
 /app/wait-for-it.sh postgre:5432 -t 60
