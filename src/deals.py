@@ -14,7 +14,8 @@ API_KEY  = os.environ.get("PIPEDRIVE_API_KEY")
 BASE_URL = os.environ.get("PIPEDRIVE_BASE_URL")
 
 # Dados de Conexão MySQL
-DB_HOST     = "mysql"
+DB_HOST     = os.environ.get("MYSQL_HOST", "localhost")
+DB_PORT     = int(os.environ.get("MYSQL_PORT", 3310))
 DB_USER     = os.environ.get("MYSQL_USER")
 DB_PASSWORD = os.environ.get("MYSQL_PASSWORD")
 DB_DATABASE = os.environ.get("MYSQL_DATABASE")
