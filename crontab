@@ -1,15 +1,16 @@
-# Garante que o cron saiba onde encontrar os executáveis
+# Garante que o cron saiba onde encontrar os executaveis
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 TZ=America/Sao_Paulo
 
-# Escalonado de 2 em 2 minutos para evitar concorrência no banco
-# Todos aguardam o MySQL com wait-for-it antes de executar
+# Teste de vida do cron (debug)
+* * * * * root echo "CRON OK $(date)" >> /app/logs/heartbeat.log 2>&1
 
+# Jobs principais (intervalo de 2 minutos)
 0  8-18 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/src/deals.py     >> /app/logs/deals.log     2>&1
 2  8-18 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/src/fields.py    >> /app/logs/fields.log    2>&1
 4  8-18 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/src/pipelines.py >> /app/logs/pipelines.log 2>&1
 6  8-18 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/src/stages.py    >> /app/logs/stages.log    2>&1
 8  8-18 * * 1-5 root /app/wait-for-it.sh mysql:3306 -t 60 && /usr/local/bin/python /app/src/users.py     >> /app/logs/users.log     2>&1
 
-# Mantenha esta linha vazia no final
+# Linha vazia obrigatoria

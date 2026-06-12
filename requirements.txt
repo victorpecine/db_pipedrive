@@ -3,3 +3,6 @@ pandas
 mysql-connector-python
 dotenv
 psycopg2-binary
+mysql-connector-python
+requests
+python-dotenv

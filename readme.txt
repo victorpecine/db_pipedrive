@@ -19,6 +19,7 @@ python3 src/stages.py && python3 src/fields.py && python3 src/pipelines.py && py
 docker exec -it mysql_cron bash
 ls -l /etc/cron.d/mysql_cron
 cat /etc/cron.d/mysql_cron
+service cron status
 
 # Reconstruir apenas a imagem do serviço cron
 docker-compose -p pipedrive_mysql build cron
