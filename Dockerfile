@@ -33,7 +33,8 @@ COPY wait-for-it.sh /app/wait-for-it.sh
 COPY .env /app/.env
 
 # Permissões do wait-for-it
-RUN chmod +x /app/wait-for-it.sh
+RUN chmod +x /app/wait-for-it.sh \
+    && dos2unix /app/wait-for-it.sh
 
 # Instala dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
